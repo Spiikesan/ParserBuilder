@@ -171,6 +171,17 @@ bool ParserBuilder::v_rule ( const ParserNode *p_node )
   l.ignore_ws = currentWS;
   l.ignore_nl = currentNl;
   if ( state ) {
+    if ( opts.have ( RuleOption::PR_Option_Push_Symbol ) ) {
+      ParserNode *pushNode = getNodeFromName ( node, ParserNode::NodeType::PT_Rule, opts.params[ 0 ] );
+      Rule *pushRule       = getRule ( opts.params[ 1 ] );
+      if ( pushNode && pushRule && pushNode->left ) {
+        ParserNode *existing = getNodeFromName ( pushRule->first, ParserNode::NodeType::PT_Literal, pushNode->left->value );
+        if ( !existing ) {
+          std::cout << "No existing node, OK , push " << pushNode->left->value << std::endl;
+          PushSymbol(pushRule->first, pushNode->left->value);
+        }
+      }
+    }
     if ( opts.have ( RuleOption::PR_Option_Wipe ) ) {
       // std::cout << "Rule [" << node << "] " << node->toString () << " have WIPE." << std::endl;
       freeNode ( node->left );
@@ -222,8 +233,8 @@ bool ParserBuilder::v_sequence ( const ParserNode *p_node )
     node->left = root;
     l.skipWhitespaces ();
     if ( v_dispatch ( p_node->right ) ) {
-    l.skipWhitespaces ();
-    node->right = root;
+      l.skipWhitespaces ();
+      node->right = root;
       root        = node;
       return good ();
     }

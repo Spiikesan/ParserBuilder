@@ -22,6 +22,7 @@ namespace PB {
         PR_Option_Ignore_WS,   // n: Force ignoring blank characters. Cannot be used with Include_WS
         PR_Option_Include_WS,   // s: Force to not ignoring blank characters. Cannot be used with Ignore_WS
         PR_Option_Ignore_WS_NO_NL,   // i: Force ignoring blank characters but not the newlines. Cannot be used with Include_WS
+        PR_Option_Push_Symbol, // p: Need 2 rules name: rule1 and rule2, push the rule1 value as a QuotedSymbol into the rule2. 
       };
       RuleOption ()
           : value ( 0 ) {}
@@ -32,6 +33,7 @@ namespace PB {
       bool have ( value_type p_value ) const { return ( value & ( 1 << p_value ) ) != 0; }
 
       unsigned int value;
+      std::vector<std::string> params;
     };
 
     typedef std::pair< ParserNode *, RuleOption > Rule;
@@ -45,6 +47,7 @@ namespace PB {
 
     // return the rule, or NULL if there is no rule with the given name.
     Rule *getRule ( const std::string &p_ruleName );
+    ParserNode *getNodeFromName ( ParserNode *from, ParserNode::NodeType::value_type p_type, const std::string &p_ruleName );
 
     // return the rule, or NULL if there is no rule with the given name.
     const std::string &getDefaultEntryPoint () const;
@@ -79,7 +82,7 @@ namespace PB {
     bool g_rangeFactor ();
     bool g_exclusion ();
     bool g_identifier ();
-    bool g_option ();
+    bool g_options ();
     bool g_rawId ();
     bool g_quotedSymbol ();
     bool g_terminal ( const std::string &p_str );
@@ -110,6 +113,8 @@ namespace PB {
     bool v_anyCharacter ( const ParserNode *p_node );
     bool v_eof ( const ParserNode *p_node );
     bool v_eol ( const ParserNode *p_node );
+
+    void PushSymbol(ParserNode *rule, const std::string &p_symbol);
 
     //attributes
     bool debug;

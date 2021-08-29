@@ -6,7 +6,7 @@
 using namespace PB;
 
 ParserBuilder::ParserBuilder ()
-    : Parser (), debug(false), level(0), lastRule ( NULL )
+    : Parser (), debug ( false ), level ( 0 ), lastRule ( NULL )
 {
   extensions.push_back ( Rule ( new ParserNode ( ParserNode::NodeType::PT_EXTENSION_1, "letter" ), RuleOption () ) );
   extensions.back ().first->index = extensions.size () - 1;
@@ -49,6 +49,8 @@ void ParserBuilder::RuleOption::setOptionsString ( const std::string &p_options 
     add ( PR_Option_Exclude );
   if ( p_options.find ( 'w' ) != std::string::npos )
     add ( PR_Option_Wipe );
+  if ( p_options.find ( 'p' ) != std::string::npos )
+    add ( PR_Option_Push_Symbol );
 }
 
 ParserBuilder::Rule *ParserBuilder::getRule ( const std::string &p_ruleName )
@@ -66,6 +68,23 @@ ParserBuilder::Rule *ParserBuilder::getRule ( const std::string &p_ruleName )
   return NULL;
 }
 
+ParserNode *ParserBuilder::getNodeFromName ( ParserNode *from, ParserNode::NodeType::value_type p_type, const std::string &p_ruleName )
+{
+  ParserNode *node = NULL;
+
+  if ( from ) {
+    if ( from->type == p_type && from->value == p_ruleName ) {
+      node = from;
+    }
+    else {
+      node = getNodeFromName ( from->left, p_type, p_ruleName );
+      if ( !node ) {
+        node = getNodeFromName ( from->right, p_type, p_ruleName );
+      }
+    }
+  }
+  return node;
+}
 const std::string &ParserBuilder::getDefaultEntryPoint () const
 {
   static std::string empty;
@@ -100,7 +119,7 @@ void ParserBuilder::printTree ( bool compact ) const
 {
   std::vector< std::string > tab;
   printTree ( compact, root, false, 0, 0, 0, tab );
-  for ( size_t i = 0; i < tab.size(); i++ ) {
+  for ( size_t i = 0; i < tab.size (); i++ ) {
     std::cout << tab[ i ] << std::endl;
   }
 }
@@ -109,7 +128,7 @@ void ParserBuilder::printTree ( const ParserNode *p_node, bool compact ) const
 {
   std::vector< std::string > tab;
   printTree ( compact, p_node, false, 0, 0, 0, tab );
-  for ( size_t i = 0; i < tab.size(); i++ ) {
+  for ( size_t i = 0; i < tab.size (); i++ ) {
     std::cout << tab[ i ] << std::endl;
   }
 }
@@ -141,7 +160,7 @@ size_t ParserBuilder::printTree ( bool compact, const ParserNode *p_node, bool i
       if ( p_tab[ graph_depth - 1 ].size () < size ) {
         p_tab[ graph_depth - 1 ].resize ( size, ' ' );
       }
-      size_t end = (size_t)((((float)width)+0.5) / 2.0 + right + (((float)p_width)+0.5) / 2.0);
+      size_t end = (size_t) ( ( ( (float) width ) + 0.5 ) / 2.0 + right + ( ( (float) p_width ) + 0.5 ) / 2.0 );
       for ( size_t i = 1; i < end; i++ ) {
         p_tab[ graph_depth - 1 ][ p_offset + left + width / 2 + i ] = '-';
       }
@@ -165,4 +184,17 @@ size_t ParserBuilder::printTree ( bool compact, const ParserNode *p_node, bool i
     }
   }
   return left + width + right;
+}
+
+void ParserBuilder::PushSymbol(ParserNode *rule, const std::string &p_symbol)
+{
+  ParserNode *node = rule->right;
+  std::cout << "Rule = " << rule->toString() << ", Node = " << node->toString() << std::endl;
+  (void)p_symbol;
+  return ;
+  while (node) {
+    if (node->type == ParserNode::NodeType::PT_Alternative) {
+
+    }
+  }
 }

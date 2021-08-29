@@ -8,7 +8,7 @@ using namespace PB;
 // syntax @n ::= { lexer | rule } eof ;
 // lexer ::= "@" "lex" "." ( lex_comment ) ";" ;
 // lex_comment ::= "comment" "." ( "line" quoted_symbol | "block" quoted_symbol quoted_symbol ) ;
-// rule ::= { comment } identifier [option] "::=" expression ";" ;
+// rule ::= { comment } identifier [options] "::=" expression ";" ;
 // comment @wx ::= "#" { any_excluding_endline } eol ;
 // expression ::= term { "|" term } ;
 // term ::= factor { factor } ;
@@ -19,7 +19,8 @@ using namespace PB;
 // range_factor ::= quoted_symbol ".." quoted_symbol ;
 // exclusion ::= "-" factor ;
 // identifier ::= "<" raw_id ">" | raw_id ;
-// option ::= "@" { "c" | "s" | "n" | "x" | "w" } ;
+// options ::= option { identifier }
+// option ::= "@" { "c" | "s" | "n" | "x" | "w" | "t" | "p" } ;
 // raw_id ::= letter { letter | digit | "_" | "-" };
 // quoted_symbol ::= """ """ """ | """ any_excluding_quote { any_excluding_quote } """ ;
 // any_excluding_quote ::= - """ any_character ;
@@ -135,7 +136,7 @@ bool ParserBuilder::g_rule ()
   if ( g_identifier () ) {
     node = allocNode ( ParserNode::NodeType::PT_Rule );
     rules.push_back ( std::make_pair ( node, RuleOption () ) );
-    g_option ();
+    g_options ();
     node->left = root;
     if ( g_terminal ( "::=" ) && g_expression () && g_terminal ( ";" ) ) {
       node->right = root;
@@ -302,13 +303,18 @@ bool ParserBuilder::g_identifier ()
 }
 
 // "@" identifier
-bool ParserBuilder::g_option ()
+bool ParserBuilder::g_options ()
 {
   ParserNode *node = root;
   begin ();
   if ( g_terminal ( "@" ) && g_identifier () ) {
     rules.back ().second.setOptionsString ( root->value );
     freeNode ( root );
+    while ( g_identifier () ) {
+      rules.back ().second.params.push_back(root->value);
+      freeNode ( root );
+      root = NULL;
+    }
     root = node;
     return good ();
   }

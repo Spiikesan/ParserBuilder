@@ -99,6 +99,12 @@ int main ( int ac, char **av )
         }
       }
     }
+    std::cout << "class_name" << std::endl;
+    pb.printTree(pb.getRule("class_name")->first->right);
+    std::cout << "original_namespace_name" << std::endl;
+    pb.printTree(pb.getRule("original_namespace_name")->first->right);
+    std::cout << "template_name" << std::endl;
+    pb.printTree(pb.getRule("template_name")->first->right);
   }
   else {
     std::cout << "Generation error" << std::endl;

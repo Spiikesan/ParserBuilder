@@ -15,9 +15,9 @@ namespace_name ::= namespace_alias | original_namespace_name ;
 #template_name ::= identifier ;
 
 typedef_name ::= "size_t" ;
-original_namespace_name ::= "std" | "PB" ;
+original_namespace_name ::= "std" ;
 namespace_alias ::= "__nothing__" ;
-class_name ::= template_id | "string" | "AstNode" | "AstWorkers" | "Ast" | "ParserNode" | "NodeType";
+class_name ::= template_id | "string" | "AstNode" | "AstWorkers" | "ParserNode" ;
 enum_name ::= "__nothing__" ;
 template_name ::= "vector" | "pair" ;
 
@@ -32,8 +32,8 @@ preprocessing_token @cw ::= header_name
                       | pp_number
                       | character_literal
                       | string_literal
-                      | preprocessing_op_or_punc ;
-#######               | each non whitespace characters that cannot be one of the above ?
+                      | preprocessing_op_or_punc
+                      | any_character ;
 
 # lex.token
 token ::= identifier
@@ -529,7 +529,7 @@ block_declaration ::= using_directive
 simple_declaration ::= [ decl_specifier_seq ] [ init_declarator_list ] ";" ;
 
 # dcl.spec
-#DEFINITION d'un typedef (push declared)
+#DEFINITION d'un typedef_name (push declared)
 decl_specifier ::= "typedef"
                  | "friend"
                  | function_specifier
@@ -577,14 +577,19 @@ type_name ::= typedef_name
             | class_name ;
 
 # dcl.type.elab
+#forward declarations.
 elaborated_type_specifier ::= "typename" [ "::" ] nested_name_specifier ( [ "template" ] template_id
                                                                         | identifier )
-                            | ( "enum" | class_key ) [ "::" ] [ nested_name_specifier ] identifier ;
+                            | forward_declare_enum
+                            | forward_declare_class ;
+
+forward_declare_enum @p identifier enum_name ::= "enum" [ "::" ] [ nested_name_specifier ] identifier ;
+forward_declare_class @p identifier class_name ::= class_key [ "::" ] [ nested_name_specifier ] identifier ;
 
 # dcl.enum
 
-#DEFINITION of an enum (push declared)
-enum_specifier ::= "enum" [ identifier ] "{" [ enumerator_list ] "}" ;
+#DEFINITION of an enum_name (push declared)
+enum_specifier @p identifier enum_name ::= "enum" [ identifier ] "{" [ enumerator_list ] "}" ;
 
 enumerator_list ::= enumerator_definition { "," enumerator_definition } ;
 
@@ -600,8 +605,8 @@ namespace_definition ::= unnamed_namespace_definition
 named_namespace_definition ::= extension_namespace_definition
                              | original_namespace_definition ;
 
-#DEFINITION of a namespace (original) (push declared)
-original_namespace_definition ::= "namespace" identifier "{" namespace_body "}" ;
+#DEFINITION of an original_namespace_name (push declared)
+original_namespace_definition @p identifier original_namespace_name ::= "namespace" identifier "{" namespace_body "}" ;
 
 extension_namespace_definition ::= "namespace" original_namespace_name "{" namespace_body "}" ;
 
@@ -611,8 +616,8 @@ namespace_body ::= [ declaration_seq ] ;
 
 
 # namespace.alias
-#DEFINITION of namespace (alias) (push declared)
-namespace_alias_definition ::= "namespace" identifier "=" qualified_namespace_specifier ";" ;
+#DEFINITION of namespace_alias (push declared)
+namespace_alias_definition @p identifier namespace_alias ::= "namespace" identifier "=" qualified_namespace_specifier ";" ;
 
 qualified_namespace_specifier ::= [ "::" ] [ nested_name_specifier ] namespace_name ;
 
@@ -694,10 +699,10 @@ initializer_list ::= initializer_clause { "," initializer_clause } ;
 
 # class
 
-#DEFINITION of class (push declared)
+#DEFINITION of class_name (push declared)
 class_specifier ::= class_head "{" [ member_specification ] "}" ;
 
-class_head ::= class_key ( [ nested_name_specifier ] template_id
+class_head @p identifier class_name ::= class_key ( [ nested_name_specifier ] template_id
                          | nested_name_specifier identifier
                          | [ identifier ] ) [ base_clause ] ;
 
@@ -782,8 +787,8 @@ overloadable_operator ::= "new" "[" "]"
                         | "," | "~" ;
 
 # temp
-#DEFINITION of template (push declared)
-template_declaration ::= [ "export" ] "template" "<" template_parameter_list ">" declaration ;
+#DEFINITION of template_name (push declared)
+template_declaration @p identifier template_name ::= [ "export" ] "template" "<" template_parameter_list ">" declaration ;
 
 template_parameter_list ::= template_parameter { "," template_parameter } ;
 
