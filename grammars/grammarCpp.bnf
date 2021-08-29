@@ -1,0 +1,863 @@
+# basic.link
+preprocessing_file @i ::= [ group ] eof ;
+translation_unit @n ::= { declaration_seq } eof ;
+###### LEXER PART ######
+
+# lex.charset
+hex_quad ::= hexadecimal_digit hexadecimal_digit hexadecimal_digit hexadecimal_digit ;
+universal_character_name ::= "\\u" hex_quad | "\\U" hex_quad hex_quad ;
+
+# lex.pptoken
+preprocessing_token @x ::= header_name
+                      | identifier
+                      | pp_number
+                      | character_literal
+                      | string_literal
+                      | preprocessing_op_or_punc ;
+#######               | each non whitespace characters that cannot be one of the above ?
+
+# lex.token
+token ::= identifier
+        | keyword
+        | literal
+        | operator_token
+        | punctuator ;
+
+# lex.header
+header_name ::= "<" h_char_sequence ">"
+              | """ q_char_sequence """ ;
+
+h_char_sequence @cxw ::= h_char { h_char } ;
+h_char ::= - ">" - eol any_character ;
+
+q_char_sequence @cxw ::= q_char { q_char } ;
+q_char ::= - """ - eol any_character ;
+
+# lex.ppnumber
+pp_number @cw ::= pp_number_a { pp_number_b } ;
+pp_number_a ::= digit
+              | "." digit ;
+pp_number_b ::= digit
+              | nondigit
+              | "e" sign
+              | "E" sign ;
+
+# lex.name
+identifier @cw ::= nondigit { nondigit | digit } ;
+
+digit ::= "0".."9" ;
+
+nondigit ::= universal_character_name
+           | letter
+           | "_";
+
+# lex.key
+keyword ::= "asm"
+          | "auto"
+          | "bool"
+          | "break"
+          | "case"
+          | "catch"
+          | "char"
+          | "class"
+          | "const"
+          | "const_cast"
+          | "continue"
+          | "default"
+          | "delete"
+          | "do"
+          | "double"
+          | "dynamic_cast"
+          | "else"
+          | "enum"
+          | "explicit"
+          | "extern"
+          | "false"
+          | "float"
+          | "for"
+          | "friend"
+          | "goto"
+          | "if"
+          | "inline"
+          | "int"
+          | "long"
+          | "mutable"
+          | "namespace"
+          | "new"
+          | "operator"
+          | "private"
+          | "protected"
+          | "public"
+          | "register"
+          | "reinterpret_cast"
+          | "return"
+          | "short"
+          | "signed"
+          | "sizeof"
+          | "static"
+          | "static_cast"
+          | "struct"
+          | "switch"
+          | "template"
+          | "this"
+          | "throw"
+          | "true"
+          | "try"
+          | "typedef"
+          | "typeid"
+          | "typename"
+          | "union"
+          | "unsigned"
+          | "using"
+          | "virtual"
+          | "void"
+          | "volatile"
+          | "wchar_t"
+          | "while" ;
+
+# lex.operators
+operator_token ::= preprocessing_op_or_punc ;
+punctuator ::= preprocessing_op_or_punc ;
+preprocessing_op_or_punc ::= "{"
+                           | "}"
+                           | "["
+                           | "]"
+                           | "##"
+                           | "#"
+                           | "("
+                           | ")"
+                           | ">>="
+                           | ">>"
+                           | ">="
+                           | ">"
+                           | "<<="
+                           | "<<"
+                           | "<="
+                           | "<:"
+                           | "<"
+                           | "::"
+                           | ":>"
+                           | ":"
+                           | "<%"
+                           | "%>"
+                           | "%:%:"
+                           | "%:"
+                           | ";"
+                           | "..."
+                           | "new"
+                           | "delete"
+                           | "?"
+                           | ":"
+                           | ".*"
+                           | "."
+                           | "++"
+                           | "+="
+                           | "+"
+                           | "--"
+                           | "->*"
+                           | "->"
+                           | "-="
+                           | "-"
+                           | "*="
+                           | "*"
+                           | "/="
+                           | "/"
+                           | "%="
+                           | "%"
+                           | "^="
+                           | "^"
+                           | "&&"
+                           | "&="
+                           | "&"
+                           | "||"
+                           | "|="
+                           | "|"
+                           | "~"
+                           | "!="
+                           | "!"
+                           | "=="
+                           | "="
+                           | ","
+                           | "and_eq"
+                           | "and"
+                           | "bitand"
+                           | "bitor"
+                           | "compl"
+                           | "not_eq"
+                           | "not"
+                           | "or_eq"
+                           | "or"
+                           | "xor_eq"
+                           | "xor" ;
+
+# lex.literal.kinds
+literal ::= boolean_literal
+          | string_literal
+          | floating_literal
+          | character_literal
+          | integer_literal ;
+
+# lex.icon
+integer_literal @s ::= ( hexadecimal_literal
+                    | octal_literal
+                    | decimal_literal )
+                  [ integer_suffix ] ;
+
+decimal_literal @cw ::= nonzero_digit { digit } ;
+octal_literal @cw ::= "0" { octal_digit } ;
+hexadecimal_literal @cw ::= ( "0x" | "0X" ) hexadecimal_digit { hexadecimal_digit } ;
+
+nonzero_digit ::= "1" .. "9" ;
+octal_digit ::= "0" .. "7" ;
+hexadecimal_digit ::= "0" .. "9" | "a" .. "f" | "A" .. "F" ;
+
+integer_suffix ::= unsigned_suffix [ long_long_suffix | long_suffix ]
+                 | ( long_long_suffix | long_suffix ) [ unsigned_suffix ] ;
+
+unsigned_suffix ::= "u" | "U";
+long_suffix ::= "l" | "L";
+long_long_suffix ::=  "ll" | "LL";
+
+# lex.ccon
+character_literal @s ::= [ character_wide ] character_quote c_char_sequence character_quote;
+character_quote @xw ::= "'" ;
+
+character_wide @w ::= "L" ;
+
+c_char_sequence @x ::= c_char { c_char } ;
+
+c_char @x ::= universal_character_name
+            | escape_sequence
+            | c_any_character ;
+
+c_any_character @c ::= - "'" - "\\" - eol any_character ;
+
+escape_sequence @x ::= octal_escape_sequence
+                     | hexadecimal_escape_sequence
+                     | simple_escape_sequence ;
+
+simple_escape_sequence ::= "\\?"
+                             | "\\\""
+                             | "\\'"
+                             | "\\\\"
+                             | "\\a"
+                             | "\\b"
+                             | "\\f"
+                             | "\\r"
+                             | "\\t"
+                             | "\\v"
+                             | "\\n" ;
+
+octal_escape_sequence @cw ::= "\\" ( octal_digit octal_digit octal_digit
+                                  | octal_digit octal_digit
+                                  | octal_digit ) ;
+
+hexadecimal_escape_sequence @cw ::= "\\x" hexadecimal_digit { hexadecimal_digit } ;
+
+# lex.fcon
+floating_literal @s ::= digit_sequence exponent_part [ floating_suffix ]
+                   | fractional_constant [ exponent_part ] [ floating_suffix ] ;
+
+fractional_constant @x ::= "." digit_sequence
+                      | digit_sequence "." [ digit_sequence ] ;
+
+exponent_part ::= exponent_mark [ sign ] digit_sequence ;
+exponent_mark @xw ::= "e" | "E" ;
+
+sign @x ::= "+" | "-" ;
+digit_sequence @cxw ::= digit { digit } ;
+floating_suffix @x ::= "f" | "l" | "F" | "L" ;
+
+# lex.string
+string_literal @s ::= string_quote string_quote
+                 | string_quote s_char_sequence string_quote ;
+
+string_quote @xw ::= """ ;
+
+s_char_sequence @x ::= s_char { s_char };
+
+s_char @x ::= s_char_any_str
+         | escape_sequence
+         | universal_character_name ;
+
+s_char_any_str @cxw ::= s_char_any { s_char_any } ;
+s_char_any ::= -""" -"\\" - eol any_character ;
+
+# lex.bool
+boolean_literal @s ::= boolean_false | boolean_true ;
+boolean_true @w ::= "true";
+boolean_false @w ::= "false";
+
+###### RULES ######
+
+# expr.prim.general
+primary_expression ::= id_expression
+                     | "(" expression ")"
+                     | "this"
+                     | literal ;
+
+id_expression ::= qualified_id | unqualified_id ;
+
+unqualified_id ::= template_id
+                 | "~" class_name
+                 | conversion_function_id
+                 | operator_function_id
+                 | identifier ;
+
+qualified_id ::= "::" ( template_id
+                      | operator_function_id
+                      | identifier
+                      | nested_name_specifier [ "template" ] unqualified_id )
+               | nested_name_specifier [ "template" ] unqualified_id ;
+
+
+nested_name_specifier ::= nested_name_specifier_a { nested_name_specifier_b } ;
+nested_name_specifier_a ::= ( namespace_name | type_name ) "::" ;
+nested_name_specifier_b ::= ( [ "template" ] simple_template_id
+                            | identifier ) "::" ;
+
+# expr.post
+postfix_expression ::= ( "typeid" "(" ( type_id | expression ) ")"
+                       | "const_cast" "<" type_id ">" "(" expression ")"
+                       | "reinterpret_cast" "<" type_id ">" "(" expression ")"
+                       | "dynamic_cast" "<" type_id ">" "(" expression ")"
+                       | "static_cast" "<" type_id ">" "(" expression ")"
+                       | typename_specifier "(" [ expression_list ] ")"
+                       | simple_type_specifier "(" [ expression_list ] ")"
+                       | primary_expression )
+                       { "--"
+                       | "++"
+                       | "->" pseudo_destructor_name
+                       | "." pseudo_destructor_name
+                       | "->" [ "template" ] id_expression
+                       | "." [ "template" ] id_expression
+                       | "(" [ expression_list ] ")"
+                       | "[" expression "]" } ;
+
+expression_list ::= initializer_list ;
+
+pseudo_destructor_name ::= [ "::" ] [ nested_name_specifier ] ( "~" type_name
+                                                              | type_name "::" "~" type_name ) ;
+
+# expr.unary
+unary_expression ::= delete_expression
+                   | new_expression
+                   | "sizeof" "(" type_id ")"
+                   | "sizeof" unary_expression
+                   | unary_operator cast_expression
+                   | "--" cast_expression
+                   | "++" cast_expression
+                   | postfix_expression ;
+
+unary_operator ::= "~"
+                 | "!"
+                 | "-"
+                 | "+"
+                 | "&"
+                 | "*" ;
+
+# expr.new
+new_expression ::= [ "::" ] "new" [ new_placement ] ( "(" type_id ")"
+                                                    | new_type_id ) [ new_initializer ] ;
+
+new_placement ::= "(" expression_list ")" ;
+new_type_id ::= type_specifier_seq [ new_declarator ] ;
+new_declarator ::= ptr_operator new_declarator ;
+new_initializer ::= "(" expression_list ")" ;
+
+# expr.delete
+delete_expression ::= [ "::" ] "delete" [ "[" "]" ] cast_expression ;
+
+# expr.cast
+cast_expression ::= "(" type_id ")" cast_expression
+                  | unary_expression ;
+
+# expr.mptr.oper
+pm_expression ::= cast_expression { ( "->*" | ".*" ) cast_expression } ;
+
+# expr.mul
+multiplicative_expression ::= pm_expression { ( "*" | "/" | "%" ) pm_expression } ;
+
+# expr.add
+additive_expression ::= multiplicative_expression { ( "+" | "-" ) multiplicative_expression } ;
+
+# expr.shift
+shift_expression ::= additive_expression { ( "<<" | ">>" ) additive_expression } ;
+
+# expr.rel
+relational_expression ::= shift_expression { ( "<=" | ">=" | "<" | ">" ) shift_expression } ;
+
+# expr.eq
+equality_expression ::= relational_expression { ( "!=" | "==" ) relational_expression } ;
+
+# expr.bit.and
+and_expression ::= equality_expression { "&" equality_expression } ;
+
+# expr.xor
+exclusive_or_expression ::= and_expression { "^" and_expression } ;
+
+# expr.or
+inclusive_or_expression ::= exclusive_or_expression { "|" exclusive_or_expression } ;
+
+# expr.log.and
+logical_and_expression ::= inclusive_or_expression { "&&" inclusive_or_expression } ;
+
+# expr.log.or
+logical_or_expression ::= logical_and_expression { "||" logical_and_expression } ;
+
+# expr.cond
+conditional_expression ::= logical_or_expression [ "?" expression ":" assignment_expression ] ;
+
+# expr.ass
+assignment_expression ::= throw_expression
+                        | logical_or_expression assignment_operator assignment_expression
+                        | conditional_expression ;
+assignment_operator ::= "|="
+                      | "^="
+                      | "&="
+                      | "<<="
+                      | ">>="
+                      | "-="
+                      | "+="
+                      | "%="
+                      | "/="
+                      | "*="
+                      | "=";
+
+# expr.comma
+expression ::= assignment_expression { "," assignment_expression } ;
+
+# expr.const
+constant_expression ::= conditional_expression ;
+
+# stmt.stmt
+statement ::= try_block
+            | declaration_statement
+            | jump_statement
+            | iteration_statement
+            | selection_statement
+            | compound_statement
+            | expression_statement
+            | labeled_statement ;
+
+# stmt.label
+labeled_statement ::= ( "default" ":"
+                      | "case" constant_expression ":"
+                      | identifier ) statement ;
+
+# stmt.expr
+expression_statement ::= [ expression ] ";" ;
+
+# stmt.block
+compound_statement ::= "{" { statement } "}" ;
+
+# stmt.select
+selection_statement ::= "switch" "(" expression ")" statement
+                        | "if" "(" expression ")" statement [ "else" statement ] ;
+
+# stmt.iter
+iteration_statement ::= "for" "(" for_init_statement [ expression ] ";" [ expression ] ")"
+                      | "do" statement "while" "(" expression ")"
+                      | "while" "(" expression ")" statement ;
+
+for_init_statement ::= simple_declaration
+                     | expression_statement ;
+
+# stmt.jump
+jump_statement ::= ( "goto" identifier
+                   | "return" [ expression ]
+                   | "continue"
+                   | "break" ) ";" ;
+
+# stmt.dcl
+declaration_statement ::= block_declaration ;
+
+# dcl.dcl
+declaration_seq ::= declaration { declaration } ;
+
+declaration ::= namespace_definition
+              | linkage_specification
+              | explicit_specialization
+              | explicit_instantiation
+              | template_declaration
+              | function_definition
+              | block_declaration ;
+
+block_declaration ::= enum_declaration
+                    | using_directive
+                    | using_declaration
+                    | namespace_alias_definition
+                    | asm_definition
+                    | simple_declaration ;
+
+simple_declaration ::= [ decl_specifier_seq ] [ init_declarator_list ] ";" ;
+
+# dcl.spec
+# need modification.
+decl_specifier ::= "typedef"
+                 | "friend"
+                 | function_specifier
+                 | storage_class_specifier ;
+
+decl_specifier_seq ::= { decl_specifier } type_specifier ;
+
+# dcl.stc
+storage_class_specifier ::= "mutable"
+                          | "extern"
+                          | "static"
+                          | "register"
+                          | "auto" ;
+
+# dcl.fct.spec
+function_specifier ::= "explicit"
+                     | "virtual"
+                     | "inline" ;
+
+# dcl.typedef
+typedef_name ::= identifier ;
+
+# dcl.type
+type_specifier ::= enum_specifier
+                 | class_specifier
+                 | trailing_type_specifier ;
+
+trailing_type_specifier ::= cv_qualifier
+                          | typename_specifier
+                          | elaborated_type_specifier
+                          | simple_type_specifier ;
+
+type_specifier_seq ::= type_specifier { type_specifier } ;
+
+trailing_type_specifier_seq ::= trailing_type_specifier { trailing_type_specifier } ;
+
+# dct.type.simple
+simple_type_specifier ::= "void"
+                        | "double"
+                        | "float"
+                        | "unsigned"
+                        | "signed"
+                        | "long"
+                        | "int"
+                        | "short"
+                        | "bool"
+                        | "wchar_t"
+                        | "char"
+                        | ( [ "::" ] ( nested_name_specifier "template" simple_template_id
+                                     | [ nested_name_specifier ] type_name ) ) ;
+
+type_name ::= simple_template_id
+            | typedef_name
+            | enum_name
+            | class_name ;
+
+# dcl.type.elab
+elaborated_type_specifier ::= "enum" [ "::" ] [ nested_name_specifier ] identifier
+                            | class_key [ "::" ] [ nested_name_specifier ] ( [ "template" ] simple_template_id
+                                                                           | identifier ) ;
+
+# dcl.enum
+enum_name ::= identifier ;
+
+enum_specifier ::= enum_head "{" ( [ enumerator_list [ "," enumerator_list ] ] ) "}" ;
+
+enum_head ::= enum_key [ nested_name_specifier identifier ] ;
+
+enum_declaration ::= enum_key identifier ;
+
+enum_key ::= "enum" ;
+
+enumerator_list ::= enumerator_definition { "," enumerator_definition } ;
+
+enumerator_definition ::= enumerator "=" constant_expression
+                        | enumerator ;
+
+enumerator ::= identifier ;
+
+# namespace.def
+namespace_name ::= namespace_alias
+                 | original_namespace_name ;
+
+original_namespace_name ::= identifier ;
+
+namespace_definition ::= unnamed_namespace_definition
+                       | named_namespace_definition ;
+
+named_namespace_definition ::= extension_namespace_definition
+                             | original_namespace_definition ;
+
+original_namespace_definition ::= "namespace" identifier "{" namespace_body "}" ;
+
+extension_namespace_definition ::= "namespace" original_namespace_name "{" namespace_body "}" ;
+
+unnamed_namespace_definition ::= "namespace" "{" namespace_body "}" ;
+
+namespace_body ::= [ declaration_seq ] ;
+
+# namespace.alias
+namespace_alias ::= identifier ;
+
+namespace_alias_definition ::= "namespace" identifier "=" qualified_namespace_specifier ;
+
+qualified_namespace_specifier ::= [ "::" ] [ nested_name_specifier ] namespace_name ;
+
+# namespace.udecl
+using_declaration ::= "using" "::" unqualified_id
+                    | "using" [ "typename" ] [ "::" ] nested_name_specifier unqualified_id ;
+
+# namespace.udir
+using_directive ::= "using" "namespace" [ "::" ] [ nested_name_specifier ] namespace_name ;
+
+# dcl.asm
+asm_definition ::= "asm" "(" string_literal ")" ;
+
+# dcl.link
+linkage_specification ::= "extern" string_literal ( "{" [ declaration_seq ] "}"
+                                                  | declaration ) ;
+
+# dcl.attr.grammar
+# C++0x only
+
+# dcl.decl
+init_declarator_list ::= init_declarator { "," init_declarator } ;
+
+init_declarator ::= declarator [ initializer ] ;
+
+declarator ::= noptr_declarator parameters_and_qualifiers trailing_return_type
+             | ptr_declarator ;
+
+ptr_declarator ::= noptr_declarator
+                 | ptr_operator ptr_declarator ;
+
+noptr_declarator ::= ( "(" [ ptr_declarator ] ")"
+                     | declarator_id )
+                     { "[" [ constant_expression ] "]"
+                     |  parameters_and_qualifiers } ;
+
+parameters_and_qualifiers ::= "(" parameter_declaration_clause ")" cv_qualifier_seq ;
+
+trailing_return_type ::= "->" trailing_type_specifier_seq ;
+
+ptr_operator ::= [ "::" ] nested_name_specifier "*" cv_qualifier_seq ;
+
+cv_qualifier_seq ::= cv_qualifier { cv_qualifier } ;
+
+cv_qualifier ::= "volatile" | "const" ;
+
+declarator_id ::= [ "::" ] [ nested_name_specifier ] class_name
+                | id_expression ;
+
+# dcl.name
+type_id ::= type_specifier_seq [ abstract_declarator ] ;
+
+abstract_declarator ::= [ noptr_abstract_declarator ] parameters_and_qualifiers
+                      | ptr_abstract_declarator ;
+
+ptr_abstract_declarator ::= ptr_operator [ ptr_abstract_declarator ]
+                          | noptr_abstract_declarator ;
+noptr_abstract_declarator ::= "(" ptr_abstract_declarator ")" { [ noptr_abstract_declarator ] ( "[" constant_expression "]" | parameters_and_qualifiers ) } ;
+
+# dcl.fct
+parameter_declaration_clause ::= [ parameter_declaration_list [ "," "..." ] ] ;
+parameter_declaration_list ::= parameter_declaration { "," parameter_declaration } ;
+
+parameter_declaration ::= decl_specifier_seq ( [ abstract_declarator ] "=" initializer_clause
+                                             | declarator [ "=" initializer_clause ]) ;
+
+# dcl.fct.def.general
+function_definition ::= [ decl_specifier_seq ] declarator function_body ;
+function_body ::= [ ctor_initializer ] compound_statement ;
+
+# dcl.init
+initializer ::= "(" expression_list ")"
+              | "=" initializer_clause ;
+
+initializer_clause ::= braced_init_list
+                     | assignment_expression ;
+
+initializer_list ::= initializer_clause { "," initializer_clause } ;
+
+braced_init_list ::= "{" "}"
+                   | "{" initializer_list [ "," ] "}" ;
+
+# class
+class_name ::= simple_template_id
+             | identifier ;
+
+class_specifier ::= class_head "{" [ member_specification ] "}" ;
+
+class_head ::= class_key class_head_name [ base_clause ] ;
+
+class_head_name ::= nested_name_specifier class_name ;
+
+class_key ::= "union"
+            | "struct"
+            | "class" ;
+
+# class.mem
+member_specification ::= ( access_specifier ":"
+                         | member_declaration ) [ member_specification ] ;
+
+member_declaration ::= template_declaration
+                     | using_declaration
+                     | function_definition [ ";" ]
+                     | [ decl_specifier_seq ] [ member_declarator_list ] ";" ;
+
+member_declarator_list ::= member_declarator_list { "," member_declarator } ;
+
+member_declarator ::= [ identifier ] [ virt_specifier_seq ] ":" constant_expression
+                    | declarator [ virt_specifier_seq ] [ pure_specifier ] ;
+
+virt_specifier_seq ::= virt_specifier { virt_specifier } ;
+
+virt_specifier ::= "new" ;
+
+pure_specifier ::= "=" "0" ;
+
+# class.derived
+
+base_clause ::= ":" base_specifier_list ;
+
+base_specifier_list ::= base_specifier { "," base_specifier } ;
+
+base_specifier ::= access_specifier [ "virtual" ] base_type_specifier
+                 | "virtual" [ access_specifier ] base_type_specifier ;
+
+base_type_specifier ::= [ "::" ] [ nested_name_specifier ] class_name ;
+
+access_specifier ::= "public"
+                   | "protected"
+                   | "private" ;
+
+# class.conv.fct
+conversion_function_id ::= "operator" conversion_type_id ;
+
+conversion_type_id ::= type_specifier_seq [ conversion_declarator ] ;
+
+conversion_declarator ::= ptr_operator { ptr_operator } ;
+
+# class.base.init
+ctor_initializer ::= ":" mem_initializer_list ;
+
+mem_initializer_list ::= mem_initializer { "," mem_initializer } ;
+
+mem_initializer ::= mem_initializer_id "(" [ expression_list ] ")" ;
+
+mem_initializer_id ::= base_type_specifier
+                     | identifier ;
+
+# over.oper
+operator_function_id ::= "operator" overloadable_operator [ "<" [ template_argument_list ] ">" ] ;
+overloadable_operator ::= "new" "[" "]"
+                        | "delete" "[" "]"
+                        | "new"
+                        | "delete"
+                        | "[" "]" | "(" ")"
+                        | "->*" | "->"
+                        | "--" | "-=" | "-"
+                        | "++" | "+=" | "+"
+                        | "||" | "|=" | "|"
+                        | "&&" | "&=" | "&"
+                        | ">>=" | ">>" | ">=" | ">"
+                        | "<<=" | "<<" | "<=" | "<"
+                        | "!=" | "!"
+                        | "==" | "="
+                        | "^=" | "^"
+                        | "%=" | "%"
+                        | "/=" | "/"
+                        | "*=" | "*"
+                        | "," | "~" ;
+
+# over.literal
+# C++0x only
+
+# temp
+template_declaration ::= "template" "<" template_parameter_list ">" declaration ;
+
+template_parameter_list ::= template_parameter { "," template_parameter } ;
+
+# temp.param
+template_parameter ::= type_parameter
+                     | parameter_declaration ;
+
+type_parameter ::= "template" "<" template_parameter_list ">" "class" [ identifier ] "=" id_expression
+                 | ( "typename" | "class" ) identifier [ "=" type_id ] ;
+
+# temp.names
+simple_template_id ::= template_name "<" [ template_argument_list ] ">" ;
+
+template_id ::= operator_function_id "<" [ template_argument_list ] ">"
+              | simple_template_id ;
+
+template_name ::= identifier ;
+
+template_argument_list ::= template_argument { "," template_argument } ;
+
+template_argument ::= id_expression
+                    | type_id
+                    | constant_expression ;
+
+# temp.res
+typename_specifier ::= "typename" [ "::" ] nested_name_specifier ( [ "template" ] simple_template_id
+                                                                 | identifier );
+
+# temp.explicit
+explicit_instantiation ::= [ "extern" ] "template" declaration ;
+
+# temp.expl.spec
+explicit_specialization ::= "template" "<" ">" declaration ;
+
+# except
+try_block ::= "try" compound_statement handler_seq ;
+
+handler_seq ::= handler { handler } ;
+
+handler ::= "catch" "(" exception_declaration ")" compound_statement ;
+
+exception_declaration ::= type_specifier_seq declarator
+                        | type_specifier_seq [ abstract_declarator ] ;
+
+throw_expression ::= "throw" [ assignment_expression ] ;
+
+#except.spec
+# C++0x only
+
+# cpp
+
+group @x ::= group_part { group_part } ;
+
+group_part @x ::= if_section
+             | control_line
+             | text_line
+             | "#" non_directive;
+
+if_section ::= if_group [ elif_groups ] [ else_group ] endif_line ;
+
+if_group ::= "#" ( "ifndef" | "ifdef" ) identifier new_line [ group ]
+           | "#" "if" constant_expression new_line [ group ] ;
+
+elif_groups ::= elif_group { elif_group } ;
+
+elif_group ::= "#" "elif" constant_expression new_line [ group ] ;
+
+else_group ::= "#" "else" new_line [ group ] ;
+
+endif_line ::= "#" "endif" new_line ;
+
+control_line ::= "#" ( new_line
+                     | ( "pragma" | "error" ) [ pp_tokens ] new_line
+                     | "line" pp_tokens new_line
+                     | "include" preprocessing_token new_line
+                     | "undef" identifier new_line
+                     | "define" identifier ( "(" [ define_identifier_list ] ")" replacement_list new_line
+                                           | replacement_list new_line ) ) ;
+
+define_identifier_list @x ::= identifier_list [ "," "..." ] ;
+
+text_line ::= [ pp_tokens ] new_line ;
+non_directive ::= pp_tokens new_line ;
+identifier_list ::= identifier { "," identifier } ;
+replacement_list ::= [ pp_tokens ] ;
+pp_tokens @x ::= preprocessing_token { preprocessing_token } ;
+
+# Add comments ?
+new_line @xw ::= eol ;

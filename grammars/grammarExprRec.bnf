@@ -1,0 +1,15 @@
+prog @n ::= expr eof ;
+
+expr ::= term ( "+" | "-" ) expr
+       | term ;
+term ::= factor ( "*" | "/" ) term
+       | factor ;
+factor ::= number
+         | identifier
+         | group ;
+group @x ::= oparen expr cparen ;
+oparen @xw ::= "(" ;
+cparen @xw ::= ")" ;
+
+identifier @cxw ::= letter { letter | digit | "_" } ;
+number @cwx ::= digit { digit } ;
